@@ -1,6 +1,8 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import utils from './utils';
+import azure from './utils/azure';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -22,11 +24,11 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-let win: BrowserWindow | null
+let win;
 
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: path.join(process.env.VITE_PUBLIC, 'icon.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -64,3 +66,18 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(createWindow)
+
+ipcMain.on("READ_CONFIG", (event, args) => {
+  const config = utils.readConfig();
+  event.reply("READ_CONFIG", config);
+});
+
+ipcMain.on("WRITE_CONFIG", (event, args) => {
+  utils.writeConfig(args);
+  event.reply("WRITE_CONFIG", null);
+});
+
+ipcMain.on("LOAD_BLOB_CONTAINERS", async (event, args) => {
+  const list = await azure.loadContainers();
+  event.reply("LOAD_BLOB_CONTAINERS", JSON.stringify(list, null, 2));
+});
