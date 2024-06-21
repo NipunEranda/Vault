@@ -39,6 +39,7 @@ function createWindow() {
   });
 
   win.maximize();
+  win.setMenu(null);
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {

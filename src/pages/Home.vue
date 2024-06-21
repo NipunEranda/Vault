@@ -198,7 +198,6 @@ async function loadData() {
 watch(
   () => route.fullPath,
   async (newValue, oldValue) => {
-    console.log(newValue);
     await loadData();
   },
   { deep: true }
