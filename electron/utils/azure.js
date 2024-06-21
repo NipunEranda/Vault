@@ -18,7 +18,49 @@ const loadContainers = async () => {
         };
         list.push(obj);
     }
-    return list;
+    return { folders: list };
+}
+
+const loadFiles = async (root) => {
+    const files = [], folders = [];
+    try {
+        const blobServiceClient = await getServiceClient();
+        let containerClient = blobServiceClient.getContainerClient(root.split("/")[0]);
+        const hBlobs = containerClient.listBlobsByHierarchy("/", { prefix: root.split("/").splice(1, root.split("/").length).join("/") });
+
+        for await (const blob of hBlobs) {
+            const blobClient = blob.kind == 'prefix' ? containerClient.getBlobClient(`${blob.name}.info.mytypefi`) : containerClient.getBlobClient(blob.name);
+            const properties = await new Promise((resolve, reject) => {
+                blobClient.getProperties().then((properties) => resolve(properties)).catch(() => resolve(null));
+            });
+
+            const fullPath = blob.kind == 'prefix' ? blob.name.split('/').splice(0, blob.name.split('/').length - 2).join("/") : blob.name.split('/').splice(0, blob.name.split('/').length - 1).join("/");
+            const rootPath = blob.kind == 'prefix' ? blob.name.split('/')[blob.name.split('/').length - 3] : blob.name.split('/')[blob.name.split('/').length - 2];
+
+            const obj = {
+                name: blob.kind == 'prefix' ? blob.name.split('/')[blob.name.split('/').length - 2] : blob.name,
+                mimeType: blob.kind == 'prefix' ? null : properties.contentType,
+                size: blob.kind == 'prefix' ? null : properties.contentLength,
+                uploader: properties ? properties.metadata ? properties.metadata.uploader : null : null,
+                root: rootPath ? rootPath : '/',
+                createdOn: properties ? properties.createdOn : null,
+                modifiedOn: properties ? properties.lastModified : null,
+                fullPath: fullPath != '' ? `${fullPath}/` : '/',
+            };
+
+            if (blob.kind == 'prefix') {
+                obj.type = 'folder';
+                folders.push(obj);
+            } else {
+                // Blob
+                obj.type = 'file';
+                files.push(obj);
+            }
+        }
+    } catch (e) {
+        console.log(e);
+    }
+    return { files, folders };
 }
 
 const createContainer = async (name) => {
@@ -29,5 +71,6 @@ const createContainer = async (name) => {
 
 export default {
     loadContainers,
-    createContainer
+    loadFiles,
+    createContainer,
 };

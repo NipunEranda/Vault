@@ -83,9 +83,13 @@ ipcMain.on("WRITE_CONFIG", (event, args) => {
   event.reply("WRITE_CONFIG", null);
 });
 
-ipcMain.on("LOAD_BLOB_CONTAINERS", async (event, args) => {
-  const list = await azure.loadContainers();
-  event.reply("LOAD_BLOB_CONTAINERS", JSON.stringify(list, null, 2));
+ipcMain.on("LOAD_BLOBS", async (event, args) => {
+  let data;
+  if (!args)
+    data = await azure.loadContainers();
+  else
+    data = await azure.loadFiles(Buffer.from(args, 'base64').toString());
+  event.reply("LOAD_BLOBS", JSON.stringify(data, null, 2));
 });
 
 ipcMain.on("CREATE_BLOB_CONTAINER", async (event, args) => {

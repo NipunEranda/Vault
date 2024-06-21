@@ -13,10 +13,12 @@
         </tr>
       </thead>
       <tbody>
+        <!-- Folders -->
         <tr
           v-for="(folder, f) in folders"
           :key="f"
           class="bg-white border-b dark:bg-zinc-800 dark:border-zinc-700 hover:dark:bg-blue-400 cursor-pointer dark:text-white hover:text-zinc-800"
+          @dblclick="goToFolder(folder)"
         >
           <th
             scope="row"
@@ -30,6 +32,27 @@
             v-text="formatDate(folder.modifiedOn)"
           ></td>
         </tr>
+        <!-- Folders -->
+
+        <!-- Files -->
+        <tr
+          v-for="(file, f) in files"
+          :key="f"
+          class="bg-white border-b dark:bg-zinc-800 dark:border-zinc-700 hover:dark:bg-blue-400 cursor-pointer dark:text-white hover:text-zinc-800"
+        >
+          <th
+            scope="row"
+            class="px-4 py-2 font-medium text-zinc-900 dark:text-white hover:text-zinc-800 whitespace-nowrap flex items-center"
+          >
+            <i class="material-icons text-md me-1">description</i
+            ><span class="text-md">{{ file.name }}</span>
+          </th>
+          <td
+            class="px-4 py-2 text-end"
+            v-text="formatDate(file.modifiedOn)"
+          ></td>
+        </tr>
+        <!-- Files -->
       </tbody>
     </table>
 
@@ -40,10 +63,19 @@
     >
       <button
         type="button"
-        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center"
         @click="openNewContainerModal"
+        v-if="!route.query.root"
       >
-        New Container
+        <i class="material-icons text-md me-1">widgets</i>New Container
+      </button>
+      <button
+        type="button"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center"
+        @click="openNewContainerModal"
+        v-if="route.query.root"
+      >
+        <i class="material-icons text-md me-1">create_new_folder</i>New Folder
       </button>
     </div>
     <!-- Operations -->
@@ -81,18 +113,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { run, showModal, hideModal } from "../utils";
 import dayjs from "dayjs";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 const router = useRouter();
+const route = useRoute();
 import $ from "jquery";
 
 let folders = ref([]);
+let files = ref([]);
 let loading = ref(true);
 const root = ref(
   computed(() => {
-    return router.currentRoute.value.query.root;
+    return route.query.root;
   })
 );
 let modal = ref({
@@ -109,7 +143,7 @@ let modal = ref({
 let containerName = ref("");
 
 function formatDate(date) {
-  return dayjs(date).format("YYYY-MM-DD HH:MM:DD");
+  return date ? dayjs(date).format("YYYY-MM-DD HH:MM:DD") : "";
 }
 
 function openNewContainerModal() {
@@ -145,9 +179,27 @@ function validateContainerName() {
   return modal.value.actionEnabled;
 }
 
-onMounted(async () => {
-  const list = await run("LOAD_BLOB_CONTAINERS");
-  folders.value = JSON.parse(list);
+function goToFolder(folder) {
+  if (!route.query.root) router.push(`${route.path}?root=${btoa(folder.name)}`);
+}
+
+async function loadData() {
+  loading.value = true;
+  const data = await run("LOAD_BLOBS", route.query.root);
+  folders.value = JSON.parse(data).folders;
+  files.value = JSON.parse(data).files;
   loading.value = false;
+}
+
+watch(
+  () => route.fullPath,
+  async (newValue, oldValue) => {
+    await loadData();
+  },
+  { deep: true }
+);
+
+onMounted(async () => {
+  await loadData();
 });
 </script>
