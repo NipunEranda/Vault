@@ -16,11 +16,11 @@
         <tr
           v-for="(folder, f) in folders"
           :key="f"
-          class="bg-white border-b dark:bg-zinc-800 dark:border-zinc-700 hover:dark:bg-zinc-700 cursor-pointer dark:text-white hover:text-blue-400"
+          class="bg-white border-b dark:bg-zinc-800 dark:border-zinc-700 hover:dark:bg-blue-400 cursor-pointer dark:text-white hover:text-zinc-800"
         >
           <th
             scope="row"
-            class="px-4 py-2 font-medium text-zinc-900 dark:text-white hover:text-blue-400 whitespace-nowrap flex items-center"
+            class="px-4 py-2 font-medium text-zinc-900 dark:text-white hover:text-zinc-800 whitespace-nowrap flex items-center"
           >
             <i class="material-icons text-md me-1">folder</i
             ><span class="text-md">{{ folder.name }}</span>
