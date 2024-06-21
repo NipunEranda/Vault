@@ -180,7 +180,11 @@ function validateContainerName() {
 }
 
 function goToFolder(folder) {
-  if (!route.query.root) router.push(`${route.path}?root=${btoa(folder.name)}`);
+  if (!route.query.root)
+    router.push(`${route.path}?root=${btoa(folder.name)}`);
+  else
+    router.push(`${route.path}?root=${btoa(`${atob(route.query.root)}/${folder.name}`)}`);
+
 }
 
 async function loadData() {
@@ -194,6 +198,7 @@ async function loadData() {
 watch(
   () => route.fullPath,
   async (newValue, oldValue) => {
+    console.log(newValue);
     await loadData();
   },
   { deep: true }

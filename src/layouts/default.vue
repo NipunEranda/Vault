@@ -59,10 +59,12 @@ function goBack() {
       router.push("/home");
     else
       router.push(
-        `/home?root=${currentRoot
-          .split("/")
-          .splice(0, currentRoot.split("/").length - 1)
-          .join("/")}`
+        `/home?root=${btoa(
+          currentRoot
+            .split("/")
+            .splice(0, currentRoot.split("/").length - 1)
+            .join("/")
+        )}`
       );
   }
 }

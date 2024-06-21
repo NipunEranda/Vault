@@ -26,7 +26,7 @@ const loadFiles = async (root) => {
     try {
         const blobServiceClient = await getServiceClient();
         let containerClient = blobServiceClient.getContainerClient(root.split("/")[0]);
-        const hBlobs = containerClient.listBlobsByHierarchy("/", { prefix: root.split("/").splice(1, root.split("/").length).join("/") });
+        const hBlobs = containerClient.listBlobsByHierarchy("/", { prefix: root.split("/").splice(1, root.split("/").length - 1).join("/") != '' ? `${root.split("/").splice(1, root.split("/").length - 1).join("/")}/` : '' });
 
         for await (const blob of hBlobs) {
             const blobClient = blob.kind == 'prefix' ? containerClient.getBlobClient(`${blob.name}.info.mytypefi`) : containerClient.getBlobClient(blob.name);
