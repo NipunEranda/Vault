@@ -8,8 +8,18 @@
         class="text-xs text-zinc-700 uppercase bg-zinc-50 dark:bg-zinc-700 dark:text-zinc-400"
       >
         <tr>
-          <th scope="col" class="px-6 py-3">Name</th>
-          <th scope="col" class="px-6 py-3 text-end">Modfied On</th>
+          <th scope="col" class="px-4 py-3 flex items-center">
+            <input
+              id="selectAll"
+              type="checkbox"
+              v-model="selectAll"
+              value="true"
+              class="before:content[''] peer relative h-4 w-4 cursor-pointer appearance-none rounded-sm border border-blue-gray-200 transition-all before:absolute before:top-2/4 before:left-2/4 before:block before:h-12 before:w-12 before:-translate-y-2/4 before:-translate-x-2/4 before:rounded-full before:bg-blue-gray-500 before:opacity-0 before:transition-opacity checked:border-blue-500 checked:bg-blue-500 checked:before:bg-blue-500 hover:before:opacity-10 me-2"
+              v-if="route.query.root && !loading"
+            />
+            <label class="w-full cursor-pointer">Name</label>
+          </th>
+          <th scope="col" class="px-6 py-3 text-end cursor-pointer">Modfied On</th>
         </tr>
       </thead>
       <tbody>
@@ -19,11 +29,19 @@
           :key="f"
           class="bg-white border-b dark:bg-zinc-800 dark:border-zinc-700 hover:dark:bg-blue-400 cursor-pointer dark:text-white hover:text-zinc-800"
           @dblclick="goToFolder(folder)"
+          @click="selectItem(f, folder)"
         >
           <th
             scope="row"
             class="px-4 py-2 font-medium text-zinc-900 dark:text-white hover:text-zinc-800 whitespace-nowrap flex items-center"
           >
+            <input
+              :id="'item-' + f"
+              type="checkbox"
+              :checked="selectedItems.filter((i) => i.object == folder)[0]"
+              class="before:content[''] peer relative h-4 w-4 cursor-pointer appearance-none rounded-sm border border-blue-gray-200 transition-all before:absolute before:top-2/4 before:left-2/4 before:block before:h-12 before:w-12 before:-translate-y-2/4 before:-translate-x-2/4 before:rounded-full before:bg-blue-gray-500 before:opacity-0 before:transition-opacity checked:border-blue-500 checked:bg-blue-500 checked:before:bg-blue-500 hover:before:opacity-10 me-2"
+              v-if="route.query.root && !loading"
+            />
             <i class="material-icons text-md me-1">folder</i
             ><span class="text-md">{{ folder.name }}</span>
           </th>
@@ -39,11 +57,18 @@
           v-for="(file, f) in files"
           :key="f"
           class="bg-white border-b dark:bg-zinc-800 dark:border-zinc-700 hover:dark:bg-blue-400 cursor-pointer dark:text-white hover:text-zinc-800"
+          @click="selectItem(f, file)"
         >
           <th
             scope="row"
             class="px-4 py-2 font-medium text-zinc-900 dark:text-white hover:text-zinc-800 whitespace-nowrap flex items-center"
           >
+            <input
+              :id="'item-' + f"
+              type="checkbox"
+              :checked="selectedItems.filter((i) => i.object == file)[0]"
+              class="before:content[''] peer relative h-4 w-4 cursor-pointer appearance-none rounded-sm border border-blue-gray-200 transition-all before:absolute before:top-2/4 before:left-2/4 before:block before:h-12 before:w-12 before:-translate-y-2/4 before:-translate-x-2/4 before:rounded-full before:bg-blue-gray-500 before:opacity-0 before:transition-opacity checked:border-blue-500 checked:bg-blue-500 checked:before:bg-blue-500 hover:before:opacity-10 me-2"
+            />
             <i class="material-icons text-md me-1">description</i
             ><span class="text-md">{{ file.name }}</span>
           </th>
@@ -63,19 +88,62 @@
     >
       <button
         type="button"
-        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
         @click="openNewContainerModal"
-        v-if="!route.query.root"
+        v-if="!route.query.root && !loading"
       >
         <i class="material-icons text-md me-1">widgets</i>New Container
       </button>
       <button
         type="button"
-        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
         @click="openNewContainerModal"
-        v-if="route.query.root"
+        v-if="route.query.root && !loading"
       >
         <i class="material-icons text-md me-1">create_new_folder</i>New Folder
+      </button>
+      <button
+        type="button"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
+        v-if="route.query.root && !loading"
+      >
+        <i class="material-icons text-md me-1">upload_file</i>Upload File
+      </button>
+      <button
+        type="button"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
+        v-if="route.query.root && !loading"
+      >
+        <i class="material-icons text-md me-1">drive_folder_upload</i>Upload
+        Folder
+      </button>
+      <button
+        type="button"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
+        v-if="route.query.root && !loading && selectedItems.length > 0"
+      >
+        <i class="material-icons text-md me-1">download</i>Download
+      </button>
+      <button
+        type="button"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
+        v-if="route.query.root && !loading && selectedItems.length > 1"
+      >
+        <i class="material-icons text-md me-1">content_copy</i>Copy
+      </button>
+      <button
+        type="button"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
+        v-if="route.query.root && !loading && selectedItems.length > 1"
+      >
+        <i class="material-icons text-md me-1">content_paste</i>Paste
+      </button>
+      <button
+        type="button"
+        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
+        v-if="route.query.root && !loading && selectedItems.length > 1"
+      >
+        <i class="material-icons text-md me-1">content_paste</i>Delete
       </button>
     </div>
     <!-- Operations -->
@@ -141,6 +209,8 @@ let modal = ref({
   busy: false,
 });
 let containerName = ref("");
+let selectedItems = ref([]);
+let selectAll = ref(false);
 
 function formatDate(date) {
   return date ? dayjs(date).format("YYYY-MM-DD HH:MM:DD") : "";
@@ -180,11 +250,17 @@ function validateContainerName() {
 }
 
 function goToFolder(folder) {
-  if (!route.query.root)
-    router.push(`${route.path}?root=${btoa(folder.name)}`);
+  if (!route.query.root) router.push(`${route.path}?root=${btoa(folder.name)}`);
   else
-    router.push(`${route.path}?root=${btoa(`${atob(route.query.root)}/${folder.name}`)}`);
+    router.push(
+      `${route.path}?root=${btoa(`${atob(route.query.root)}/${folder.name}`)}`
+    );
+}
 
+function selectItem(index, obj) {
+  if (selectedItems.value.filter((i) => i.object == obj).length == 0)
+    selectedItems.value.push({ index: index, object: obj });
+  else selectedItems.value = selectedItems.value.filter((i) => i.object != obj);
 }
 
 async function loadData() {
@@ -201,6 +277,20 @@ watch(
     await loadData();
   },
   { deep: true }
+);
+
+watch(
+  () => selectAll.value,
+  (newValue, oldValue) => {
+    if (newValue == true) {
+      selectedItems.value.push(
+        ...(files.value ? files.value.map((file, f) => (f = { index: f, object: file })) : [])
+      );
+      selectedItems.value.push(
+        ...(folders.value ? folders.value.map((folder, f) => (f = { index: f, object: folder })) : [])
+      );
+    } else selectedItems.value = [];
+  }
 );
 
 onMounted(async () => {
