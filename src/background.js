@@ -13,9 +13,9 @@ protocol.registerSchemesAsPrivileged([
 async function createWindow() {
   // Create the browser window.
   const win = new BrowserWindow({
-    width: 1280,
+    width: 1000,
     height: 720,
-    minWidth: 1280,
+    minWidth: 1000,
     minHeight: 720,
     webPreferences: {
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
@@ -23,7 +23,7 @@ async function createWindow() {
       enableRemoteModule: false,
       preload: path.resolve(__static, 'preload.js'),
     }
-  })
+  });
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode

@@ -28,15 +28,17 @@ let win;
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1280,
+    width: 1000,
     height: 720,
-    minWidth: 1280,
+    minWidth: 1000,
     minHeight: 720,
     icon: path.join(process.env.VITE_PUBLIC, 'icon.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
-  })
+  });
+
+  win.maximize();
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
@@ -85,3 +87,8 @@ ipcMain.on("LOAD_BLOB_CONTAINERS", async (event, args) => {
   const list = await azure.loadContainers();
   event.reply("LOAD_BLOB_CONTAINERS", JSON.stringify(list, null, 2));
 });
+
+ipcMain.on("CREATE_BLOB_CONTAINER", async (event, args) => {
+  const list = await azure.createContainer(args);
+  event.reply("CREATE_BLOB_CONTAINER", JSON.stringify(list, null, 2));
+})

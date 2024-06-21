@@ -21,6 +21,13 @@ const loadContainers = async () => {
     return list;
 }
 
+const createContainer = async (name) => {
+    const blobServiceClient = await getServiceClient();
+    await blobServiceClient.createContainer(name, { publicAccessLevel: 'blob' });
+    return await loadContainers();
+}
+
 export default {
-    loadContainers
+    loadContainers,
+    createContainer
 };

@@ -1,3 +1,5 @@
+import $ from "jquery";
+
 export const run = async (channel, input) => {
     window.api.send(channel, input);
     return await new Promise((resolve, reject) => {
@@ -6,3 +8,11 @@ export const run = async (channel, input) => {
         });
     });
 }
+
+export function showModal(name) {
+    $(`#${name}-modalOverlay`).removeClass("hidden");
+  }
+  
+  export function hideModal(name) {
+    $(`#${name}-modalOverlay`).addClass("hidden");
+  }

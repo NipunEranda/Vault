@@ -1,5 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron';
-const validChannels = ['READ_CONFIG', 'WRITE_CONFIG', "READ_APP_PATH", "LOAD_BLOB_CONTAINERS"];
+const validChannels = ['READ_CONFIG', 'WRITE_CONFIG', "READ_APP_PATH", "LOAD_BLOB_CONTAINERS", "CREATE_BLOB_CONTAINER"];
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
