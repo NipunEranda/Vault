@@ -1,5 +1,38 @@
 <template>
-  <div class="overflow-auto" style="height: calc(100vh - 3.5rem)">
+  <div
+    class="overflow-auto"
+    style="height: calc(100vh - 3.5rem)"
+    @dragenter.prevent="showDragDropOverlay = true"
+  >
+    <!-- Drag and drop -->
+    <div
+      class="drag-and-drop w-100 mt-1"
+      style="
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: -webkit-fill-available;
+        background-color: rgb(0 0 0 / 68%);
+        z-index: 2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 !important;
+        border: 0;
+      "
+      v-if="showDragDropOverlay"
+      @dragover.prevent
+      @dragenter.prevent
+      @dragleave.prevent="showDragDropOverlay = false"
+      @drop="handleFileDrop"
+    >
+      <p v-if="!isDragging">Drag and drop folders here</p>
+      <p v-else>Drop folders here</p>
+    </div>
+
     <LoadingBar v-if="loading" />
     <table
       class="w-full text-sm text-left rtl:text-right text-zinc-500 dark:text-zinc-400 max-w-full mb-[4.5rem]"
@@ -19,7 +52,9 @@
             />
             <label class="w-full cursor-pointer">Name</label>
           </th>
-          <th scope="col" class="px-6 py-3 text-end cursor-pointer">Modfied On</th>
+          <th scope="col" class="px-6 py-3 text-end cursor-pointer">
+            Modfied On
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -68,9 +103,12 @@
               type="checkbox"
               :checked="selectedItems.filter((i) => i.object == file)[0]"
               class="before:content[''] peer relative h-4 w-4 cursor-pointer appearance-none rounded-sm border border-blue-gray-200 transition-all before:absolute before:top-2/4 before:left-2/4 before:block before:h-12 before:w-12 before:-translate-y-2/4 before:-translate-x-2/4 before:rounded-full before:bg-blue-gray-500 before:opacity-0 before:transition-opacity checked:border-blue-500 checked:bg-blue-500 checked:before:bg-blue-500 hover:before:opacity-10 me-2"
+              v-if="route.query.root && !loading"
             />
             <i class="material-icons text-md me-1">description</i
-            ><span class="text-md">{{ file.name }}</span>
+            ><span class="text-md">{{
+              file.name.split("/")[file.name.split("/").length - 1]
+            }}</span>
           </th>
           <td
             class="px-4 py-2 text-end"
@@ -97,7 +135,7 @@
       <button
         type="button"
         class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
-        @click="openNewContainerModal"
+        @click="openNewFolderModal"
         v-if="route.query.root && !loading"
       >
         <i class="material-icons text-md me-1">create_new_folder</i>New Folder
@@ -106,16 +144,9 @@
         type="button"
         class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
         v-if="route.query.root && !loading"
+        @click="openFileInput()"
       >
         <i class="material-icons text-md me-1">upload_file</i>Upload File
-      </button>
-      <button
-        type="button"
-        class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-700 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:border-blue-500 dark:text-blue-400 dark:hover:text-white dark:hover:bg-blue-500 flex items-center me-2"
-        v-if="route.query.root && !loading"
-      >
-        <i class="material-icons text-md me-1">drive_folder_upload</i>Upload
-        Folder
       </button>
       <button
         type="button"
@@ -152,14 +183,14 @@
       :modalId="modal.modalId"
       :modalTitle="modal.modalTitle"
       :operation="modal.operation"
-      :modalProcess="modal.modalProcess"
+      :modalProcess="processMainModal"
       :actionName="modal.actionName"
       :showCancel="modal.showCancel"
       :width="modal.width"
       :actionEnabled="modal.actionEnabled"
       :busy="modal.busy"
     >
-      <div class="w-full px-3 mb-6">
+      <div class="w-full px-3 mb-6" v-if="modal.type == 'container'">
         <label
           for="name"
           class="block mb-3 text-xs font-medium text-neutral-700 dark:text-white"
@@ -172,11 +203,38 @@
           class="bg-neutral-50 border border-neutral-300 text-neutral-900 dark:bg-neutral-700 dark:border-neutral-500 dark:placeholder-neutral-400 dark:text-white text-sm rounded-lg block w-full p-2.5 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500"
           placeholder="Example: testcontainer OR test-container"
           @input="validateContainerName"
-          @keyup.enter="createNewContainer"
+          @keyup.enter="processMainModal"
+          required
+        />
+      </div>
+      <div class="w-full px-3 mb-6" v-if="modal.type == 'folder'">
+        <label
+          for="name"
+          class="block mb-3 text-xs font-medium text-neutral-700 dark:text-white"
+          ><span>Folder Name</span><span class="text-danger"> *</span></label
+        >
+        <input
+          type="text"
+          id="folderName"
+          v-model="folderName"
+          class="bg-neutral-50 border border-neutral-300 text-neutral-900 dark:bg-neutral-700 dark:border-neutral-500 dark:placeholder-neutral-400 dark:text-white text-sm rounded-lg block w-full p-2.5 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-500"
+          @keyup.enter="processMainModal"
           required
         />
       </div>
     </Modal>
+
+    <form enctype="multipart/form-data">
+      <input
+        type="file"
+        name="files"
+        id="files"
+        ref="fileInput"
+        multiple
+        @change="uploadFile($event)"
+        hidden
+      />
+    </form>
   </div>
 </template>
 
@@ -185,56 +243,100 @@ import { ref, onMounted, computed, watch } from "vue";
 import { run, showModal, hideModal } from "../utils";
 import dayjs from "dayjs";
 import { useRouter, useRoute } from "vue-router";
+import fileHelper from "../utils/fileHelper";
 const router = useRouter();
 const route = useRoute();
 import $ from "jquery";
 
-let folders = ref([]);
-let files = ref([]);
-let loading = ref(true);
-const root = ref(
-  computed(() => {
-    return route.query.root;
-  })
-);
-let modal = ref({
-  modalId: "mainModal",
-  modalTitle: "",
-  operation: "",
-  modalProcess: () => {},
-  actionName: "",
-  showCancel: false,
-  width: "w-6/12",
-  actionEnabled: false,
-  busy: false,
-});
-let containerName = ref("");
-let selectedItems = ref([]);
-let selectAll = ref(false);
+const fileInput = ref(null),
+  root = ref(
+    computed(() => {
+      return route.query.root;
+    })
+  );
+
+let folders = ref([]),
+  files = ref([]),
+  loading = ref(true),
+  modal = ref({
+    type: null,
+    modalId: "mainModal",
+    modalTitle: "",
+    operation: "",
+    actionName: "",
+    showCancel: false,
+    width: "w-6/12",
+    actionEnabled: false,
+    busy: false,
+  }),
+  containerName = ref(""),
+  folderName = ref(""),
+  selectedItems = ref([]),
+  selectAll = ref(false),
+  uploads = ref([]),
+  showDragDropOverlay = ref(false),
+  isDragging = ref(false);
 
 function formatDate(date) {
   return date ? dayjs(date).format("YYYY-MM-DD HH:MM:DD") : "";
 }
 
+function openFileInput() {
+  resetSelections();
+  fileInput.value.click();
+}
+
 function openNewContainerModal() {
   containerName.value = "";
+  modal.value.type = "container";
   modal.value.modalTitle = "New Container";
   modal.value.operation = "add";
-  modal.value.modalProcess = createNewContainer;
   modal.value.actionName = "Create";
   modal.value.showCancel = true;
   showModal(modal.value.modalId);
   $("#containerName").focus();
 }
 
-async function createNewContainer() {
-  if (validateContainerName()) {
-    modal.value.busy = true;
-    const list = await run("CREATE_BLOB_CONTAINER", containerName.value);
-    folders.value = JSON.parse(list);
-    modal.value.busy = true;
-    hideModal(modal.value.modalId);
+function openNewFolderModal() {
+  folderName.value = "";
+  modal.value.type = "folder";
+  modal.value.modalTitle = "New Folder";
+  modal.value.operation = "add";
+  modal.value.actionName = "Create";
+  modal.value.showCancel = true;
+  (modal.value.actionEnabled = true), showModal(modal.value.modalId);
+}
+
+async function processMainModal() {
+  loading.value = true;
+  switch (modal.value.type) {
+    case "container":
+      if (validateContainerName()) {
+        modal.value.busy = true;
+        const list = await run("CREATE_BLOB_CONTAINER", containerName.value);
+        folders.value = JSON.parse(list);
+        modal.value.busy = false;
+        hideModal(modal.value.modalId);
+      }
+      break;
+    case "folder":
+      modal.value.busy = true;
+      const data = await run(
+        "CREATE_FOLDER",
+        JSON.stringify({
+          root: root.value,
+          name: folderName.value,
+        })
+      );
+      folders.value = JSON.parse(data).folders;
+      files.value = JSON.parse(data).files;
+      modal.value.busy = false;
+      hideModal(modal.value.modalId);
+      break;
+    default:
+      break;
   }
+  loading.value = false;
 }
 
 function validateContainerName() {
@@ -271,6 +373,41 @@ async function loadData() {
   loading.value = false;
 }
 
+function resetSelections() {
+  if (document.getElementById("files"))
+    document.getElementById("files").onclick = function () {
+      this.value = null;
+    };
+  if (document.getElementById("folders"))
+    document.getElementById("folders").onclick = function () {
+      this.value = null;
+    };
+}
+
+async function handleFileDrop(event) {
+  showDragDropOverlay.value = false;
+  event.preventDefault();
+  isDragging.value = false;
+
+  loading.value = true;
+  // await fileHelper.uploadFiles(Object.keys(event.dataTransfer.files).map(key => event.dataTransfer.files[key]), route, loading, loadData);
+
+  const root = event.dataTransfer.files[0].path.split("/").splice(0, event.dataTransfer.files[0].path.split("/").length - 1).join("/");
+  const droppedFiles = await fileHelper.dragAndDroppedFiles(event);
+
+   await fileHelper.uploadFiles(root, droppedFiles, route, loading, loadData);
+}
+
+async function uploadFile(event) {
+  loading.value = true;
+  let files = [];
+  [...Array(event.target.files.length).keys()].map((i) => {
+    files.push(event.target.files[i]);
+  });
+
+  await fileHelper.uploadFiles(files, route, loading, loadData);
+}
+
 watch(
   () => route.fullPath,
   async (newValue, oldValue) => {
@@ -284,10 +421,14 @@ watch(
   (newValue, oldValue) => {
     if (newValue == true) {
       selectedItems.value.push(
-        ...(files.value ? files.value.map((file, f) => (f = { index: f, object: file })) : [])
+        ...(files.value
+          ? files.value.map((file, f) => (f = { index: f, object: file }))
+          : [])
       );
       selectedItems.value.push(
-        ...(folders.value ? folders.value.map((folder, f) => (f = { index: f, object: folder })) : [])
+        ...(folders.value
+          ? folders.value.map((folder, f) => (f = { index: f, object: folder }))
+          : [])
       );
     } else selectedItems.value = [];
   }

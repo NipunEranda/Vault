@@ -1,6 +1,7 @@
 import utils from ".";
 // const { BlockBlobClient, BlobServiceClient } = require('@azure/storage-blob');
 import { BlockBlobClient, BlobServiceClient } from "@azure/storage-blob";
+import fs from "fs";
 
 const getServiceClient = async () => {
     const config = await utils.readConfig();
@@ -53,8 +54,10 @@ const loadFiles = async (root) => {
                 folders.push(obj);
             } else {
                 // Blob
-                obj.type = 'file';
-                files.push(obj);
+                if (!obj.name.includes('.mytypefi')) {
+                    obj.type = 'file';
+                    files.push(obj);
+                }
             }
         }
     } catch (e) {
@@ -69,8 +72,32 @@ const createContainer = async (name) => {
     return await loadContainers();
 }
 
+const createFolder = async (folder) => {
+    folder = JSON.parse(folder);
+    const container = Buffer.from(folder.root, 'base64').toString().split("/")[0];
+    const root = Buffer.from(folder.root, 'base64').toString().split("/").splice(1, Buffer.from(folder.root, 'base64').toString().split("/").length).join("/");
+    const blobServiceClient = await getServiceClient();
+    const containerClient = blobServiceClient.getContainerClient(container);
+    const data = 'Azure Blob Folder';
+    const blockBlobClient = containerClient.getBlockBlobClient(`${root != '' ? `${root}/` : ''}${folder.name}/.info.mytypefi`);
+    await blockBlobClient.upload(data, data.length);
+    return await loadFiles(`${container}${root != '' ? `/${root}` : ''}`);
+}
+
+const uploadFile = async (file) => {
+    const blobName = file.name, blobServiceClient = await getServiceClient();
+
+    const containerClient = blobServiceClient.getContainerClient(file.container);
+    const blockBlobClient = containerClient.getBlockBlobClient(`${file.root != '' ? `${file.root}/` : ''}${blobName}`);
+    const fileStream = fs.createReadStream(file.filePath);
+    await blockBlobClient.uploadStream(fileStream, Math.ceil(fs.statSync(file.filePath).size / 100), 20);
+    return true;
+}
+
 export default {
     loadContainers,
     loadFiles,
     createContainer,
+    createFolder,
+    uploadFile
 };

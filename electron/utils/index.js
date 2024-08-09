@@ -1,4 +1,4 @@
-import fs, { write } from 'fs';
+import fs from 'fs';
 import CryptoJS from 'crypto-js';
 import { homedir } from 'os';
 

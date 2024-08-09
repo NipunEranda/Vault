@@ -39,7 +39,6 @@ function createWindow() {
   });
 
   win.maximize();
-  win.setMenu(null);
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
@@ -97,3 +96,13 @@ ipcMain.on("CREATE_BLOB_CONTAINER", async (event, args) => {
   const list = await azure.createContainer(args);
   event.reply("CREATE_BLOB_CONTAINER", JSON.stringify(list, null, 2));
 })
+
+ipcMain.on("CREATE_FOLDER", async (event, args) => {
+  const list = await azure.createFolder(args);
+  event.reply("CREATE_FOLDER", JSON.stringify(list, null, 2));
+});
+
+ipcMain.on("UPLOAD_FILE", async (event, args) => {
+  await azure.uploadFile(JSON.parse(args));
+  event.reply("UPLOAD_FILE", true);
+});
